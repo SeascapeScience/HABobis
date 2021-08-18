@@ -1,0 +1,107 @@
+---
+title: "Maxent Obis"
+author: "Jace"
+date: "7/14/2021"
+output: html_document
+---
+
+```{r}
+library(raster)
+library(robis)
+library(tidyverse)
+library(lubridate)
+library(dismo)
+source('MURsst-points.R')
+```
+
+
+## SST background genoration
+
+will load in the existing background points from the CSV 'SSTsample.csv' so that the next chunck can add to it
+
+```{r}
+taxon.name <- 'Karenia brevis'  #taxon of interest
+
+
+
+read.csv("SSTsample.csv") %>% 
+select(!X) %>% 
+mutate(date= ymd(date))->rsst
+
+```
+
+This chunk will collect SST points from random long and lat from random days from the MUR database from 2002 to 2020
+
+the output is a CSV with new points added
+```{r}
+
+# for (i in 1:9999) {
+#   
+#    
+# lo<-(runif(1, min = -180, max = 180))
+# la<-runif(1, min = -90, max = 90)
+# la<-180*asin(la/90)/pi
+# year<-round(runif(1, min = 2002.5, max = 2020.49))
+# month<-round(runif(1, min = .5, max = 12.49))
+# day<-round(runif(1, min = .5, max = 28.49))
+# 
+# points <-tribble(
+#   ~lon, ~lat, ~date,
+#   lo,  la,   (paste0(year,"-",month,"-",day)))
+#  
+# loop_tabl <- MURpoints(points)
+# 
+# rsst<- add_row(rsst,loop_tabl)
+# }
+# 
+# 
+# write.csv(rsst, "SSTsample.csv")
+
+  
+```
+
+## OBIS get data
+
+```{r}
+
+taxon.data <- robis::occurrence(taxon.name)
+
+```
+
+
+## Maxent data prep
+
+
+formats data to vectors that for input into Maxent function
+
+```{r}
+read.csv("SSTsample.csv") %>% 
+select(!X) %>% 
+mutate(date= ymd(date))->rsst
+
+
+x<-rsst$analysed_sst[!is.na(rsst$analysed_sst)]-273.15
+
+y<-taxon.data$sst[!is.na(taxon.data$sst)] #Data from the other RMD that loads in the OBIS data
+
+
+
+#prepares the background and sampled data to input into the Maxent function
+obs<-c(y,(x )) 
+labs<-c(rep(1,length(y)),rep(0,length(x)))
+```
+
+
+Runs Maxent function
+```{r}
+maxent(as.data.frame(obs),as.data.frame(labs)) ->model
+
+response(model)
+
+
+
+```
+
+
+
+
